@@ -11,6 +11,7 @@ import numpy as np
 import kagglehub
 import json
 import cv2
+import torch_directml
 
 path = kagglehub.dataset_download("manideep1108/tusimple")
 print("Path to dataset files: ", path)
@@ -142,6 +143,8 @@ if __name__ == '__main__':
         device = 'cuda'
     elif torch.backends.mps.is_available():
         device = 'mps'
+    elif torch_directml.is_available():
+        device = torch_directml.device()
     else:
         device = 'cpu'
 
