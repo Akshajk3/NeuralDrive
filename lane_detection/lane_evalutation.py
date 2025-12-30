@@ -10,7 +10,7 @@ from torchvision import transforms
 from lane_detection.lane_detection import TUSimpleDataset, UNet
 
 class LaneDetector:
-    def __init__(self, model_path='model.h5')
+    def __init__(self, model_path='model.h5'):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
 
         self.model = UNet().to(self.device)
@@ -40,3 +40,5 @@ class LaneDetector:
         mask_pil = Image.fromarray(mask * 255)
         mask_pil = mask_pil.resize(original_size, Image.NEAREST)
         lane_mask = np.array(mask_pil) > 127
+
+        return lane_mask
