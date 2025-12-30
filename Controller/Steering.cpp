@@ -5,12 +5,15 @@ volatile long Steering::temp = 0;
 uint8_t Steering::pinA = 0;
 uint8_t Steering::pinB = 0;
 uint8_t Steering::servoPin = 0;
-float Steering::gearRatio = 1;
+float Steering::rackRatio = 0;
+float Steering::wheelRatio = 0;
 
-Steering::Steering(int pin1, int pin2, int servPin) {
+Steering::Steering(int pin1, int pin2, int servPin, float Rratio = 1, float Wratio = 1) {
   pinA = pin1;
   pinB = pin2;
   servoPin = servPin;
+  rackRatio = Rratio;
+  wheelRatio = Wratio;
 }
 
 void Steering::setup() {
@@ -36,11 +39,11 @@ void Steering::update() {
   }
 
   float countsPerDeg = 1200 / 360;
-  float wheelDeg = counter / countsPerDeg;
+  float wheelDeg = (counter / countsPerDeg) * wheelRatio;
 
   wheelDeg = constrain(wheelDeg, -135, 135);
 
-  float servoDeg = (wheelDeg + 135) * gearRatio;
+  float servoDeg = (wheelDeg + 135) * rackRatio;
   steeringServo.write(servoDeg);
 }
 

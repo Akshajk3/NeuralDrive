@@ -1,7 +1,6 @@
 #pragma once
 #include <Arduino.h>
 #include <VescUart.h>
-#include "HardwareSerial.h"
 
 struct VescData {
   bool vesc_ok = false;
