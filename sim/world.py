@@ -4,6 +4,8 @@ import random
 
 from sim.observer import get_speed_kmh, depth_callback, rgb_callback
 
+from sim.evaluator import detect_lane
+
 client = carla.Client("localhost", 2000)
 client.set_timeout(15.0)
 
@@ -18,13 +20,13 @@ spawn_point = random.choice(world.get_map().get_spawn_points())
 vehicle = world.spawn_actor(vehicle_bp, spawn_point)
 
 depth_bp = blueprint_library.find("sensor.camera.depth")
-depth_bp.set_attribute("image_size_x", "1280")
-depth_bp.set_attribute("image_size_y", "800")
+depth_bp.set_attribute("image_size_x", "640")
+depth_bp.set_attribute("image_size_y", "360")
 depth_bp.set_attribute("fov", "90")
 
 camera_bp = blueprint_library.find("sensor.camera.rgb")
-camera_bp.set_attribute("image_size_x", "1920")
-camera_bp.set_attribute("image_size_y", "1080")
+camera_bp.set_attribute("image_size_x", "640")
+camera_bp.set_attribute("image_size_y", "360")
 camera_bp.set_attribute("fov", "86")
 
 depth_transform = carla.Transform(
@@ -70,6 +72,8 @@ def run_sim():
                 f"Throttle: {control.throttle: .3f} | "
                 f"Brake: {control.brake: .3f}"
             )
+
+            detect_lane()
             
             time.sleep(0.1)
     except KeyboardInterrupt:
