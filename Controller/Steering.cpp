@@ -20,15 +20,11 @@ void Steering::setup() {
   pinMode(pinA, INPUT_PULLUP);
   pinMode(pinB, INPUT_PULLUP);
 
-  attachInterrupt(0, Steering::ai0, RISING);
-  attachInterrupt(1, Steering::ai1, RISING);
+  attachInterrupt(0, Steering::ai0, CHANGE);
+  attachInterrupt(1, Steering::ai1, CHANGE);
 
   steeringServo.attach(servoPin);
 
-  steeringServo.write(270);
-  delay(100);
-  steeringServo.write(0);
-  delay(100);
   steeringServo.write(135);
 }
 
@@ -38,12 +34,13 @@ void Steering::update() {
     temp = counter;
   }
 
-  float countsPerDeg = 1200 / 360;
+  float countsPerDeg = 1200.0f / 360.0f;
   float wheelDeg = (counter / countsPerDeg) * wheelRatio;
 
   wheelDeg = constrain(wheelDeg, -135, 135);
 
-  float servoDeg = (wheelDeg + 135) * rackRatio;
+  float servoDeg = (wheelDeg + 135) / rackRatio;
+  servoDeg = constrain(servoDeg, 0.0f, 270.0f);
   steeringServo.write(servoDeg);
 }
 
