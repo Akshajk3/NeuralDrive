@@ -212,7 +212,7 @@ if __name__ == '__main__':
         optimizer = optim.Adam(model.parameters(), lr=0.001)
         loss_fn = combined_loss
 
-        for epoch in range(5):
+        for epoch in range(20):
             print(f"\nEpoch: {epoch+1}")
             train_loss = train(model, train_loader, optimizer, loss_fn, device, epoch)
             test_loss = test(model, val_loader, loss_fn, device)
