@@ -11,14 +11,16 @@ import numpy as np
 import kagglehub
 import json
 import cv2
+import random
 
 path = kagglehub.dataset_download("manideep1108/tusimple")
 print("Path to dataset files: ", path)
 
 class TUSimpleDataset(Dataset):
-    def __init__(self, base_path, json_file, transform=None):
+    def __init__(self, base_path, json_file, image_transform=None, mask_transform=None):
         self.base_path = base_path
-        self.transform = transform
+        self.image_transform = image_transform
+        self.mask_transform = mask_transform
 
         with open(json_file, 'r') as f:
             self.annotations = [json.loads(line) for line in f]
@@ -45,7 +47,7 @@ class TUSimpleDataset(Dataset):
                 
                 if len(lane_points) > 1:
                     lane_points = np.array(lane_points, dtype=np.int32)
-                    cv2.polylines(mask, [lane_points], False, 255, thickness=20)
+                    cv2.polylines(mask, [lane_points], False, 255, thickness=6)
 
         return mask
     
@@ -57,12 +59,17 @@ class TUSimpleDataset(Dataset):
         image = Image.open(image_path).convert("RGB")
 
         mask = self.create_lane_mask(annotation)
-        mask_img = Image.fromarray(mask)
+        mask_img = Image.fromarray(mask).convert("L")
 
-        if self.transform:
-            image = self.transform(image)
-            mask_img = self.transform(mask_img)
-            mask_img = mask_img.float()
+        if random.random() > 0.5:
+            image = image.transpose(Image.FLIP_LEFT_RIGHT)
+            mask_img = mask_img.transpose(Image.FLIP_LEFT_RIGHT)
+
+        if self.image_transform:
+            image = self.image_transform(image)
+        
+        if self.mask_transform:
+            mask_img = self.mask_transform(mask_img)
 
         return image, mask_img
     
@@ -73,8 +80,10 @@ class UNet(nn.Module):
         def conv_block(in_channels, out_channels):
             return nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, 3, padding=1),
+                nn.BatchNorm2d(out_channels),
                 nn.ReLU(inplace=True),
                 nn.Conv2d(out_channels, out_channels, 3, padding=1),
+                nn.BatchNorm2d(out_channels),
                 nn.ReLU(inplace=True)
             )
         self.enc1 = conv_block(3, 64)
@@ -83,9 +92,9 @@ class UNet(nn.Module):
         self.enc2 = conv_block(64, 128)
         self.pool2 = nn.MaxPool2d(2)
 
-        self.bottleneck = conv_block(128, 256)
+        self.bottleneck = conv_block(128, 512)
 
-        self.up2 = nn.ConvTranspose2d(256, 128, 2, stride=2)
+        self.up2 = nn.ConvTranspose2d(512, 128, 2, stride=2)
         self.dec2 = conv_block(256, 128)
 
         self.up1 = nn.ConvTranspose2d(128, 64, 2, stride=2)
@@ -103,6 +112,21 @@ class UNet(nn.Module):
         dec1 = self.dec1(torch.cat([up1, enc1], dim=1))
         return self.final(dec1)
     
+def dice_loss(pred, target, smooth=1):
+    pred = torch.sigmoid(pred)
+    intersection = (pred * target).sum()
+    return 1 - (2. * intersection + smooth) / (pred.sum() + target.sum() + smooth)
+
+def combined_loss(pred, target):
+    bce = F.binary_cross_entropy_with_logits(pred, target)
+    dice = dice_loss(pred, target)
+    return bce + dice
+
+def denormalize(img_tensor):
+    mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+    std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+    return img_tensor * std + mean
+    
 def train(model, train_loader, optimizer, loss_fn, device, epoch):
     model.train()
     total_loss = 0
@@ -118,7 +142,7 @@ def train(model, train_loader, optimizer, loss_fn, device, epoch):
         total_loss += loss.item()
 
         if batch_idx % 10 == 0:
-            print(f"Train Epoch: {epoch}, Batch {batch_idx}, Loss {loss.item():.4f}")
+            print(f"Train Epoch: {epoch + 1}, Batch {batch_idx}, Loss {loss.item():.4f}")
     
     return total_loss / len(train_loader)
 
@@ -153,13 +177,28 @@ if __name__ == '__main__':
     print(f"Loading dataset from: {json_file}")
     print(f"Base path: {base_path}")
 
-    transform = transforms.Compose([
-        transforms.Resize((128, 256)),
+    image_transform = transforms.Compose([
+        transforms.Resize((256, 512)),
+        transforms.ColorJitter(
+            brightness=0.3,
+            contrast=0.3,
+            saturation=0.3,
+            hue=0.1
+        ),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]
+        )
+    ])
+
+    mask_transform = transforms.Compose([
+        transforms.Resize((256, 512), interpolation=Image.NEAREST),
         transforms.ToTensor()
     ])
 
     try:
-        dataset = TUSimpleDataset(base_path, json_file, transform)
+        dataset = TUSimpleDataset(base_path, json_file, image_transform, mask_transform)
         print(f"Dataset successfully loaded with {len(dataset)} samples")
 
         train_size = int(0.8 * len(dataset))
@@ -171,7 +210,7 @@ if __name__ == '__main__':
 
         model = UNet().to(device)
         optimizer = optim.Adam(model.parameters(), lr=0.001)
-        loss_fn = nn.BCEWithLogitsLoss()
+        loss_fn = combined_loss
 
         for epoch in range(5):
             print(f"\nEpoch: {epoch+1}")
@@ -191,13 +230,16 @@ if __name__ == '__main__':
             pred = torch.sigmoid(model(input_tensor))
             pred_mask = pred.squeeze().cpu().numpy() > 0.5
         
-        pred_mask_img = Image.fromarray((pred_mask * 255).astype('uint8')).resize((256, 128))
+        pred_mask_img = Image.fromarray((pred_mask * 255).astype('uint8'))
         
-        sample_img_np = sample_img.permute(1, 2, 0).numpy()
-        sample_img_np = (sample_img_np * 255).astype(np.uint8)
+        sample_img_denorm = denormalize(sample_img.cpu())
+        sample_img_np = sample_img_denorm.permute(1, 2, 0).numpy()
+        sample_img_np = np.clip(sample_img_np * 255, 0, 255).astype(np.uint8)
         sample_image_pil = Image.fromarray(sample_img_np)
 
-        red_overlay = Image.new("RGB", (256, 128), (255, 0, 0))
+        H, W = pred_mask.shape
+
+        red_overlay = Image.new("RGB", (W, H), (255, 0, 0))
         mask_overlay = Image.composite(red_overlay, sample_image_pil, pred_mask_img)
         blended = Image.blend(sample_image_pil, mask_overlay, alpha=0.5)
 
