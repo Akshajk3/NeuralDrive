@@ -5,7 +5,7 @@ import math
 import numpy as np
 import cv2
 
-global latest_rgb_frame
+latest_rgb_frame = None
 
 def get_speed_kmh(vehicle: carla.Actor):
     v = vehicle.get_velocity()
@@ -36,7 +36,8 @@ def get_rgb_image(image: carla.Image):
 def rgb_callback(image: carla.Image):
     img = get_rgb_image(image)
 
+    global latest_rgb_frame
     latest_rgb_frame = img
 
-    # cv2.imshow("RGB Camera", img)
-    # cv2.waitKey(1)
+    cv2.imshow("RGB Camera", img)
+    cv2.waitKey(1)

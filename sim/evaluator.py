@@ -1,12 +1,21 @@
 from lane_detection.lane_evalutation import LaneDetector
 import carla
 import time
-from sim.observer import latest_rgb_frame
+import sim.observer as observer
 import numpy as np
 import cv2
 
+lane_detector = LaneDetector('lane_detection/model.h5')
 
-def detect_lane(image: carla.Image) -> np.ndarray:
-    print ("Starting Lane Detection...")
+def detect_lane() -> np.ndarray | None:
+    if observer.latest_rgb_frame is None:
+        return None
 
-    cv2.imshow("Latset RGB Image", latest_rgb_frame)
+    frame = observer.latest_rgb_frame.copy()
+    lane_mask = lane_detector.predict_frame(frame)
+
+    overlay = frame.copy()
+    overlay[lane_mask] = [0, 0, 255]
+
+    cv2.imshow("Lane Detection", overlay)
+    cv2.waitKey(1)
