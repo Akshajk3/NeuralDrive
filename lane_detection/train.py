@@ -1,1 +1,1 @@
-from lane_detection.lane_detection import UNet, TUSimpleDataset
+from lane_detection.model import UNet, TUSimpleDataset

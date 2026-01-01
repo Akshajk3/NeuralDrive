@@ -3,11 +3,11 @@ import time
 import random
 
 from sim.observer import get_speed_kmh, depth_callback, rgb_callback
-
-from sim.evaluator import detect_lane
+from sim.detector import detect_lane, detect_objects
+from sim.npc_manager import NPCManager
 
 client = carla.Client("localhost", 2000)
-client.set_timeout(15.0)
+client.set_timeout(30.0)
 
 print("Loading Map...")
 
@@ -18,6 +18,11 @@ vehicle_bp = blueprint_library.filter("vehicle.tesla.model3")[0]
 spawn_point = random.choice(world.get_map().get_spawn_points())
 
 vehicle = world.spawn_actor(vehicle_bp, spawn_point)
+
+npc_manager = NPCManager(client, world, blueprint_library)
+
+npc_vehicles = npc_manager.spawn_npc_vehicles()
+npc_walkers = npc_manager.spawn_npc_pedestrians(100)
 
 depth_bp = blueprint_library.find("sensor.camera.depth")
 depth_bp.set_attribute("image_size_x", "640")
@@ -56,30 +61,32 @@ rgb_camera.listen(rgb_callback)
 
 vehicle.set_autopilot(True)
 
-def spawn_npc_vehicles(world: carla.World, blueprint_library, num_vehicles=20):
-    spawn_points = world.get_map().get_spawn_points()
-
 def run_sim():
     print("Running Sim...")
     try:
         while True:
+            world.tick()
             control = vehicle.get_control()
             speed = get_speed_kmh(vehicle)
 
-            print(
-                f"Speed: {speed:6.2f} km/h | "
-                f"Steer: {control.steer: .3f} | "
-                f"Throttle: {control.throttle: .3f} | "
-                f"Brake: {control.brake: .3f}"
-            )
+            # print(
+            #     f"Speed: {speed:6.2f} km/h | "
+            #     f"Steer: {control.steer: .3f} | "
+            #     f"Throttle: {control.throttle: .3f} | "
+            #     f"Brake: {control.brake: .3f}"
+            # )
 
             detect_lane()
+            detect_objects()
             
             time.sleep(0.1)
     except KeyboardInterrupt:
         print("\nStopping...")
 
     finally:
+        for npc in npc_vehicles:
+            npc.destroy()
+
         depth_camera.stop()
         rgb_camera.stop()
 

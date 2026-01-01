@@ -6,6 +6,7 @@ import numpy as np
 import cv2
 
 latest_rgb_frame = None
+latest_depth_mask = None
 
 def get_speed_kmh(vehicle: carla.Actor):
     v = vehicle.get_velocity()
@@ -21,6 +22,8 @@ def get_depth_image(image: carla.Image):
 
 def depth_callback(image: carla.Image):
     depth_img = get_depth_image(image)
+
+    mask = np.frombuffer(image.raw_data, dtype=np.uint8)
 
     cv2.imshow("Depth Camera", depth_img)
     cv2.waitKey(1)
