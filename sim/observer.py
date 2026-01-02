@@ -13,19 +13,31 @@ def get_speed_kmh(vehicle: carla.Actor):
     return 3.6 * math.sqrt(v.x**2 + v.y**2 + v.z ** 2)
 
 def get_depth_image(image: carla.Image):
-    image.convert(carla.ColorConverter.LogarithmicDepth)
-    depth = np.frombuffer(image.raw_data, dtype=np.uint8)
-    depth = depth.reshape((image.height, image.width, 4))
-    depth = depth[:, :, 0]
+    copy: carla.Image = image
+    copy.convert(carla.ColorConverter.LogarithmicDepth)
+    depth_image = np.frombuffer(image.raw_data, dtype=np.uint8)
+    depth_image = depth_image.reshape((image.height, image.width, 4))
+    depth_image = depth_image[:, :, 0]
 
-    return depth
+    return depth_image
+
+def depth_to_meters(image: carla.Image):
+    arr = np.frombuffer(image.raw_data, dtype=np.uint8)
+    arr = arr.reshape((image.height, image.width, 4))
+    R = arr[:, :, 0].astype(np.uint32)
+    G = arr[:, :, 1].astype(np.uint32)
+    B = arr[:, :, 2].astype(np.uint32)
+    normalized = (R + G * 256 + B * 256 * 256) / (256 * 256 * 256 - 1)
+    meters = 1000 * normalized
+    return meters
 
 def depth_callback(image: carla.Image):
-    depth_img = get_depth_image(image)
+    global latest_depth_mask
+    latest_depth_mask = depth_to_meters(image)
 
-    mask = np.frombuffer(image.raw_data, dtype=np.uint8)
+    vis = get_depth_image(image)
 
-    cv2.imshow("Depth Camera", depth_img)
+    cv2.imshow("Depth Camera", vis)
     cv2.waitKey(1)
 
 def get_rgb_image(image: carla.Image):
@@ -41,6 +53,3 @@ def rgb_callback(image: carla.Image):
 
     global latest_rgb_frame
     latest_rgb_frame = img
-
-    cv2.imshow("RGB Camera", img)
-    cv2.waitKey(1)

@@ -22,8 +22,9 @@ class NPCManager:
 
         vehicle_bps = self.bp_library.filter("vehicle")
 
-        for spawn in spawn_points:
+        for _ in range(num_vehicles):
             bp = random.choice(vehicle_bps)
+            spawn = random.choice(spawn_points)
 
             if bp.has_attribute("color"):
                 color = random.choice(bp.get_attribute("color").recommended_values)

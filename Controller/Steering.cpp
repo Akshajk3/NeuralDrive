@@ -2,8 +2,8 @@
 
 volatile long Steering::counter = 0;
 volatile long Steering::temp = 0;
-uint8_t Steering::pinA = 0;
-uint8_t Steering::pinB = 0;
+uint8_t Steering::pinA = 0; // Green Wire
+uint8_t Steering::pinB = 0; // White Wire
 uint8_t Steering::servoPin = 0;
 float Steering::rackRatio = 0;
 float Steering::wheelRatio = 0;

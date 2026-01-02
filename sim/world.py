@@ -3,7 +3,7 @@ import time
 import random
 
 from sim.observer import get_speed_kmh, depth_callback, rgb_callback
-from sim.detector import detect_lane, detect_objects
+from sim.detector import detect_lanes_and_objects
 from sim.npc_manager import NPCManager
 
 client = carla.Client("localhost", 2000)
@@ -21,13 +21,13 @@ vehicle = world.spawn_actor(vehicle_bp, spawn_point)
 
 npc_manager = NPCManager(client, world, blueprint_library)
 
-npc_vehicles = npc_manager.spawn_npc_vehicles()
+npc_vehicles = npc_manager.spawn_npc_vehicles(200)
 npc_walkers = npc_manager.spawn_npc_pedestrians(100)
 
 depth_bp = blueprint_library.find("sensor.camera.depth")
 depth_bp.set_attribute("image_size_x", "640")
 depth_bp.set_attribute("image_size_y", "360")
-depth_bp.set_attribute("fov", "90")
+depth_bp.set_attribute("fov", "86")
 
 camera_bp = blueprint_library.find("sensor.camera.rgb")
 camera_bp.set_attribute("image_size_x", "640")
@@ -76,8 +76,7 @@ def run_sim():
             #     f"Brake: {control.brake: .3f}"
             # )
 
-            detect_lane()
-            detect_objects()
+            detect_lanes_and_objects()
             
             time.sleep(0.1)
     except KeyboardInterrupt:

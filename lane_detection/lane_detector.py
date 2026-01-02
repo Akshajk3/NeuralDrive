@@ -28,14 +28,14 @@ class LaneDetector:
 
         print(f"Model loaded on {self.device}")
 
-    def crop_frame(self, frame):
-        pass
-
     def predict_frame(self, frame):
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        pil_image = Image.fromarray(frame_rgb)
-        original_size = pil_image.size
+        cropped_frame = self.crop_frame(frame_rgb)
+        H_orig, W_orig, _ = frame_rgb.shape
+        H_crop, W_crop, _ = cropped_frame.shape
+
+        pil_image = Image.fromarray(cropped_frame)
 
         input_tensor = self.transform(pil_image).unsqueeze(0).to(self.device)
 
@@ -45,7 +45,15 @@ class LaneDetector:
             mask = (prediction.squeeze().cpu().numpy() > 0.5).astype(np.uint8)
             
         mask_pil = Image.fromarray(mask * 255)
-        mask_pil = mask_pil.resize(original_size, Image.NEAREST)
-        lane_mask = np.array(mask_pil) > 127
+        mask_pil = mask_pil.resize((W_crop, H_crop), Image.NEAREST)
+        lane_mask_crop = np.array(mask_pil) > 127
+
+        lane_mask = np.zeros((H_orig, W_orig), dtype=bool)
+        lane_mask[(H_orig - H_crop):H_orig, :] = lane_mask_crop
 
         return lane_mask
+    
+    def crop_frame(self, frame: np.ndarray) -> np.ndarray:
+        H, W, _ = frame.shape
+        cropped_frame = frame[int(H*0.5):H, :, :]
+        return cropped_frame
