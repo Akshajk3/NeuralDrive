@@ -37,8 +37,15 @@ private:
   double brakeCurrent;
   double coastThreshold;
 
+  double filteredThrottle;
+  bool throttleEnabled;
+
   double currentDuty;
   double targetDuty;
+
+  static const int rpmTargets[6];
+  int stages;
+  int currentStage;
 
   VescData data;
 };
