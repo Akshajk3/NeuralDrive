@@ -25,13 +25,13 @@ npc_vehicles = npc_manager.spawn_npc_vehicles(200)
 npc_walkers = npc_manager.spawn_npc_pedestrians(100)
 
 depth_bp = blueprint_library.find("sensor.camera.depth")
-depth_bp.set_attribute("image_size_x", "640")
-depth_bp.set_attribute("image_size_y", "360")
+depth_bp.set_attribute("image_size_x", "1280")
+depth_bp.set_attribute("image_size_y", "720")
 depth_bp.set_attribute("fov", "86")
 
 camera_bp = blueprint_library.find("sensor.camera.rgb")
-camera_bp.set_attribute("image_size_x", "640")
-camera_bp.set_attribute("image_size_y", "360")
+camera_bp.set_attribute("image_size_x", "1280")
+camera_bp.set_attribute("image_size_y", "720")
 camera_bp.set_attribute("fov", "86")
 
 depth_transform = carla.Transform(
@@ -69,12 +69,12 @@ def run_sim():
             control = vehicle.get_control()
             speed = get_speed_kmh(vehicle)
 
-            # print(
-            #     f"Speed: {speed:6.2f} km/h | "
-            #     f"Steer: {control.steer: .3f} | "
-            #     f"Throttle: {control.throttle: .3f} | "
-            #     f"Brake: {control.brake: .3f}"
-            # )
+            print(
+                f"Speed: {speed:6.2f} km/h | "
+                f"Steer: {control.steer: .3f} | "
+                f"Throttle: {control.throttle: .3f} | "
+                f"Brake: {control.brake: .3f}"
+            )
 
             detect_lanes_and_objects()
             
