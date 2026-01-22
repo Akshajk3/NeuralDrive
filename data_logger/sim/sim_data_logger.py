@@ -39,6 +39,8 @@ class SimDataLogger:
         if not self.recording or image is None:
             return None
         
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        
         filename = os.path.join(self.rgb_dir, f"{self.image_count:05d}.png")
         cv2.imwrite(filename, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
         return filename

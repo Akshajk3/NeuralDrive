@@ -30,13 +30,13 @@ vehicle = world.spawn_actor(vehicle_bp, spawn_point)
 data_logger = SimDataLogger()
 
 depth_bp = blueprint_library.find("sensor.camera.depth")
-depth_bp.set_attribute("image_size_x", "320")
-depth_bp.set_attribute("image_size_y", "160")
+depth_bp.set_attribute("image_size_x", "640")
+depth_bp.set_attribute("image_size_y", "360")
 depth_bp.set_attribute("fov", "86")
 
 camera_bp = blueprint_library.find("sensor.camera.rgb")
-camera_bp.set_attribute("image_size_x", "320")
-camera_bp.set_attribute("image_size_y", "160")
+camera_bp.set_attribute("image_size_x", "640")
+camera_bp.set_attribute("image_size_y", "360")
 camera_bp.set_attribute("fov", "86")
 
 depth_transform = carla.Transform(
