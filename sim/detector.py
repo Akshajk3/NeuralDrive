@@ -12,10 +12,19 @@ lane_detector = LaneDetector('lane_detection/model.h5')
 object_detector = ObjectDetector()
 smoother = DistanceSmoother()
 
-def detect_lane(frame, display_frame) -> np.ndarray | None:
+def detect_lane(frame) -> np.ndarray | None:
     lane_mask = lane_detector.predict_frame(frame)
 
-    display_frame[lane_mask] = [0, 0, 255]
+    if lane_mask is None:
+        return None
+    
+    lane_mask = (lane_mask.astype(np.uint8)) * 255
+
+    return lane_mask
+
+def draw_lane_mask(display_frame, lane_mask):
+    display_frame[lane_mask > 0] = [0, 0, 255]
+
 
 
 def detect_objects(frame, depth_map, display_frame):
@@ -62,8 +71,14 @@ def detect_lanes_and_objects():
         return
     
     display_frame = observer.latest_rgb_frame.copy()
-    detect_lane(observer.latest_rgb_frame, display_frame)
+    lane_mask = detect_lane(observer.latest_rgb_frame)
+
+    if lane_mask is not None:
+        draw_lane_mask(display_frame, lane_mask)
+
     detect_objects(observer.latest_rgb_frame, observer.latest_depth_mask, display_frame)
 
     cv2.imshow("Lane and Object Detection", display_frame)
     cv2.waitKey(1)
+
+    return lane_mask

@@ -1,10 +1,13 @@
 import carla
 import time
 import random
+import csv
 
+import sim.observer as observer
 from sim.observer import get_speed_kmh, depth_callback, rgb_callback
 from sim.detector import detect_lanes_and_objects
 from sim.npc_manager import NPCManager
+from data_logger.sim.sim_data_logger import SimDataLogger
 
 client = carla.Client("localhost", 2000)
 client.set_timeout(30.0)
@@ -19,19 +22,21 @@ spawn_point = random.choice(world.get_map().get_spawn_points())
 
 vehicle = world.spawn_actor(vehicle_bp, spawn_point)
 
-npc_manager = NPCManager(client, world, blueprint_library)
+# npc_manager = NPCManager(client, world, blueprint_library)
 
-npc_vehicles = npc_manager.spawn_npc_vehicles(200)
-npc_walkers = npc_manager.spawn_npc_pedestrians(100)
+# npc_vehicles = npc_manager.spawn_npc_vehicles(200)
+# npc_walkers = npc_manager.spawn_npc_pedestrians(100)
+
+data_logger = SimDataLogger()
 
 depth_bp = blueprint_library.find("sensor.camera.depth")
-depth_bp.set_attribute("image_size_x", "1280")
-depth_bp.set_attribute("image_size_y", "720")
+depth_bp.set_attribute("image_size_x", "640")
+depth_bp.set_attribute("image_size_y", "360")
 depth_bp.set_attribute("fov", "86")
 
 camera_bp = blueprint_library.find("sensor.camera.rgb")
-camera_bp.set_attribute("image_size_x", "1280")
-camera_bp.set_attribute("image_size_y", "720")
+camera_bp.set_attribute("image_size_x", "640")
+camera_bp.set_attribute("image_size_y", "360")
 camera_bp.set_attribute("fov", "86")
 
 depth_transform = carla.Transform(
@@ -59,7 +64,15 @@ rgb_camera = world.spawn_actor(
 depth_camera.listen(depth_callback)
 rgb_camera.listen(rgb_callback)
 
-vehicle.set_autopilot(True)
+# settings = world.get_settings()
+# settings.synchronous_mode = True
+# settings.fixed_delta_seconds = 0.05  # 20 FPS
+# world.apply_settings(settings)
+
+traffic_manager = client.get_trafficmanager(8000)
+traffic_manager.set_synchronous_mode(False)
+traffic_manager.ignore_lights_percentage(vehicle, 100.0)
+vehicle.set_autopilot(True, 8000)
 
 def run_sim():
     print("Running Sim...")
@@ -76,15 +89,28 @@ def run_sim():
                 f"Brake: {control.brake: .3f}"
             )
 
-            detect_lanes_and_objects()
-            
-            time.sleep(0.1)
+            lane_mask = detect_lanes_and_objects()
+
+            if data_logger.recording:
+                rgb = data_logger.save_rgb(observer.latest_rgb_frame)
+                mask = data_logger.save_mask(lane_mask)
+
+                with open(data_logger.csv_file, "a", newline="") as f:
+                    writer = csv.writer(f)
+                    writer.writerow([
+                        rgb,
+                        mask,
+                        control.steer
+                    ])
+                
+                data_logger.image_count += 1
+
     except KeyboardInterrupt:
         print("\nStopping...")
 
     finally:
-        for npc in npc_vehicles:
-            npc.destroy()
+        # for npc in npc_vehicles:
+        #     npc.destroy()
 
         depth_camera.stop()
         rgb_camera.stop()

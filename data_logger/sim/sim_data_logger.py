@@ -20,7 +20,8 @@ class SimDataLogger:
 
         with open(self.csv_file, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["rgb", "depth", "mask", "steering", "throttle", "brake", "speed"])
+            # writer.writerow(["rgb", "depth", "mask", "steering", "throttle", "brake", "speed"])
+            writer.writerow(["rgb", "mask", "steering"])
 
         self.listener = keyboard.Listener(on_press=self.on_key_press)
         self.listener.start()
@@ -34,29 +35,29 @@ class SimDataLogger:
         except AttributeError:
             pass
     
-    def save_rgb(self, image: carla.Image):
-        if not self.recording:
+    def save_rgb(self, image: np.ndarray):
+        if not self.recording or image is None:
             return None
         
-        array = np.frombuffer(image.raw_data, dtype=np.uint8)
-        array = array.reshape((image.height, image.width, 4))
-        array = array[:, :, :3]
         filename = os.path.join(self.rgb_dir, f"{self.image_count:05d}.png")
-        cv2.imwrite(filename, cv2.cvtColor(array, cv2.COLOR_RGB2BGR))
+        cv2.imwrite(filename, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
         return filename
 
-    def save_depth(self, image: carla.Image):
-        if not self.recording:
+    def save_depth(self, image: np.ndarray):
+        if not self.recording or image is None:
             return None
 
-        image.convert(carla.ColorConverter.LogarithmicDepth)
-        depth_image = np.frombuffer(image.raw_data, dtype=np.uint8)
-        depth_image = depth_image.reshape((image.height, image.width, 4))
-        depth_image = depth_image[:, :, 0]
-
         filename = os.path.join(self.depth_dir, f"{self.image_count:05d}.png")
-        cv2.imwrite(filename, depth_image)
+        cv2.imwrite(filename, image)
         return filename
     
-    def save_mask(self, image):
-        pass
+    def save_mask(self, mask):
+        if not self.recording or mask is None:
+            return None
+        
+        if mask.dtype != np.uint8:
+            mask = mask.astype(np.uint8)
+
+        filename = os.path.join(self.mask_dir, f"{self.image_count:05d}.png")
+        cv2.imwrite(filename, mask)
+        return filename

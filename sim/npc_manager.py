@@ -63,6 +63,8 @@ class NPCManager:
 
             controller = self.world.spawn_actor(controller_bp, carla.Transform(), attach_to=walker)
 
+            self.world.tick()
+
             controller.start()
             controller.go_to_location(self.world.get_random_location_from_navigation())
             controller.set_max_speed(random.uniform(1.2, 2.2))
