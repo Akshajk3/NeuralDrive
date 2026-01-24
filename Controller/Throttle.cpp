@@ -78,14 +78,20 @@ void Throttle::printData() {
   Serial.println();
 }
 
-double Throttle::ramp(double current, double target, double stepInterval) {
-  if (currentStage < stages) {
-    if (data.rpm >= rpmTargets[currentStage]) {
-      current += stepInterval;
-      if (current > 0.95)
-        current = 0.95;
-      currentStage++;
-    }
+double Throttle::ramp(double current, double target, double step) {
+  if (fabs(target - current) < step) {
+    return target;
   }
+
+  if (target > current) {
+    current += step;
+    if (current > target) current = target;
+  } else {
+    current -= step;
+    if (current < target) current = target;
+  }
+
+  current = constrain(current, 0.0, 0.95);
+
   return current;
 }

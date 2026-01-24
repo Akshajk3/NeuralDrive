@@ -2,7 +2,7 @@
 #include "Throttle.h"
 
 Steering steering(2, 3, 4);
-Throttle throttle(A12, 185.0, 875.0, 0.01, 0.10, 2.0, 0.01);
+Throttle throttle(A12, 185.0, 875.0, 0.01, 0.05, 2.0, 0.01);
 
 // Purple : Tx
 // Orange : Rx
