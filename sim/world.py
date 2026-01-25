@@ -14,7 +14,7 @@ client.set_timeout(30.0)
 
 print("Loading Map...")
 
-world = client.load_world("Town03")
+world = client.load_world("Town04")
 blueprint_library = world.get_blueprint_library()
 
 vehicle_bp = blueprint_library.filter("vehicle.tesla.model3")[0]
