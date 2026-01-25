@@ -6,7 +6,7 @@ from pynput import keyboard
 import carla
 
 class SimDataLogger:
-    def __init__(self, rgb_dir='sim_data/RGB', depth_dir='sim_data/depth', mask_dir='sim_data/masks', csv_file='sim_data/driving_log.csv'):
+    def __init__(self, rgb_dir='driving_model/sim_data/RGB', depth_dir='driving_model/sim_data/depth', mask_dir='driving_model/sim_data/masks', csv_file='driving_model/sim_data/driving_log.csv'):
         self.rgb_dir = rgb_dir
         self.depth_dir = depth_dir
         self.mask_dir = mask_dir
