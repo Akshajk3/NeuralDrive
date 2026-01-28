@@ -1,7 +1,7 @@
 import carla
-import time
 import random
 import csv
+import cv2
 
 import sim.observer as observer
 from sim.observer import get_speed_kmh, depth_callback, rgb_callback
@@ -46,13 +46,18 @@ depth_transform = carla.Transform(
     carla.Rotation(pitch=0)
 )
 
-rgb_transform_right = carla.Transform(
-    carla.Location(),
+rgb_transform_left = carla.Transform(
+    carla.Location(x=1.5, y=-0.35, z=2.2),
     carla.Rotation(pitch=0)
 )
 
 rgb_transform_center = carla.Transform(
-    carla.Location(x=1.5, z=2.2),
+    carla.Location(x=1.5, y=0.0, z=2.2),
+    carla.Rotation(pitch=0)
+)
+
+rgb_transform_right = carla.Transform(
+    carla.Location(x=1.5, y=0.35, z=2.2),
     carla.Rotation(pitch=0)
 )
 
@@ -62,20 +67,41 @@ depth_camera = world.spawn_actor(
     attach_to=vehicle
 )
 
-rgb_camera = world.spawn_actor(
+left_camera = world.spawn_actor(
+    camera_bp,
+    rgb_transform_left,
+    attach_to=vehicle
+)
+
+left_camera = world.spawn_actor(
+    camera_bp,
+    rgb_transform_left,
+    attach_to=vehicle
+)
+
+center_camera = world.spawn_actor(
     camera_bp,
     rgb_transform_center,
     attach_to=vehicle
 )
 
+right_camera = world.spawn_actor(
+    camera_bp,
+    rgb_transform_right,
+    attach_to=vehicle
+)
+
 depth_camera.listen(depth_callback)
-rgb_camera.listen(rgb_callback)
+left_camera.listen(rgb_callback(index='left'))
+center_camera.listen(rgb_callback(index='center'))
+right_camera.listen(rgb_callback(index='right'))
+
 
 # Uncomment if you want Autopilot to run for data collection
-# traffic_manager = client.get_trafficmanager(8000)
-# traffic_manager.set_synchronous_mode(False)
-# traffic_manager.ignore_lights_percentage(vehicle, 100.0)
-# vehicle.set_autopilot(True, 8000)
+traffic_manager = client.get_trafficmanager(8000)
+traffic_manager.set_synchronous_mode(False)
+traffic_manager.ignore_lights_percentage(vehicle, 100.0)
+vehicle.set_autopilot(True, 8000)
 
 def run_sim():
     print("Running Sim...")
@@ -94,25 +120,36 @@ def run_sim():
 
             lane_mask = detect_lanes_and_objects()
 
-            rgb = observer.latest_rgb_frame
+            # rgb = observer.latest_rgb_frame["center"]
 
-            if rgb is not None and lane_mask is not None:
-                control = controller.compute_control(rgb, lane_mask)
-                vehicle.apply_control(control)
+            # if rgb is not None and lane_mask is not None:
+            #     control = controller.compute_control(rgb, lane_mask)
+            #     vehicle.apply_control(control)
 
             if data_logger.recording:
-                rgb = data_logger.save_rgb(observer.latest_rgb_frame)
+                left = data_logger.save_rgb(observer.latest_rgb_frame["left"], "left")
+                center = data_logger.save_rgb(observer.latest_rgb_frame["center"], "center")
+                right = data_logger.save_rgb(observer.latest_rgb_frame["right"], "right")
                 mask = data_logger.save_mask(lane_mask)
 
+                cv2.imshow("left", observer.latest_rgb_frame["left"])
+                cv2.imshow("center", observer.latest_rgb_frame["center"])
+                cv2.imshow("right", observer.latest_rgb_frame["right"])
+                
                 with open(data_logger.csv_file, "a", newline="") as f:
                     writer = csv.writer(f)
                     writer.writerow([
-                        rgb,
+                        left,
+                        center,
+                        right,
                         mask,
                         control.steer
                     ])
                 
                 data_logger.image_count += 1
+
+                if data_logger.image_count >= 5000:
+                    break
 
     except KeyboardInterrupt:
         print("\nStopping...")
@@ -122,9 +159,13 @@ def run_sim():
         #     npc.destroy()
 
         depth_camera.stop()
-        rgb_camera.stop()
+        center_camera.stop()
+        left_camera.stop()
+        right_camera.stop()
 
         depth_camera.destroy()
-        rgb_camera.destroy()
+        center_camera.destroy()
+        left_camera.destroy()
+        right_camera.destroy()
 
         vehicle.destroy()

@@ -21,7 +21,7 @@ class SimDataLogger:
         with open(self.csv_file, "w", newline="") as f:
             writer = csv.writer(f)
             # writer.writerow(["rgb", "depth", "mask", "steering", "throttle", "brake", "speed"])
-            writer.writerow(["rgb", "mask", "steering"])
+            writer.writerow(["left", "center", "right", "mask", "steering"])
 
         self.listener = keyboard.Listener(on_press=self.on_key_press)
         self.listener.start()
@@ -35,13 +35,13 @@ class SimDataLogger:
         except AttributeError:
             pass
     
-    def save_rgb(self, image: np.ndarray):
+    def save_rgb(self, image: np.ndarray, index: str):
         if not self.recording or image is None:
             return None
         
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         
-        filename = os.path.join(self.rgb_dir, f"{self.image_count:05d}.png")
+        filename = os.path.join(self.rgb_dir, f"{index}_{self.image_count:05d}.png")
         cv2.imwrite(filename, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
         return filename
 

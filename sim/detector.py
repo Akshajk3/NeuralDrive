@@ -67,16 +67,16 @@ def detect_objects(frame, depth_map, display_frame):
         )
 
 def detect_lanes_and_objects():
-    if observer.latest_rgb_frame is None or observer.latest_depth_mask is None:
+    if observer.latest_rgb_frame["center"] is None or observer.latest_depth_mask is None:
         return
     
-    display_frame = observer.latest_rgb_frame.copy()
-    lane_mask = detect_lane(observer.latest_rgb_frame)
+    display_frame = observer.latest_rgb_frame["center"].copy()
+    lane_mask = detect_lane(observer.latest_rgb_frame["center"])
 
     if lane_mask is not None:
         draw_lane_mask(display_frame, lane_mask)
 
-    detect_objects(observer.latest_rgb_frame, observer.latest_depth_mask, display_frame)
+    detect_objects(observer.latest_rgb_frame["center"], observer.latest_depth_mask, display_frame)
 
     cv2.imshow("Lane and Object Detection", display_frame)
     cv2.waitKey(1)

@@ -5,7 +5,12 @@ import math
 import numpy as np
 import cv2
 
-latest_rgb_frame = None
+latest_rgb_frame = {
+    "left": None,
+    "center": None,
+    "right": None
+}
+
 latest_depth_mask = None
 
 def get_speed_kmh(vehicle: carla.Actor):
@@ -48,8 +53,11 @@ def get_rgb_image(image: carla.Image):
 
     return img
 
-def rgb_callback(image: carla.Image):
-    img = get_rgb_image(image)
+def rgb_callback(index: str):
+    def callback(image: carla.Image):
+        img = get_rgb_image(image)
 
-    global latest_rgb_frame
-    latest_rgb_frame = img
+        global latest_rgb_frame
+        latest_rgb_frame[index] = img
+
+    return callback
