@@ -70,15 +70,27 @@ def detect_lanes_and_objects():
     if observer.latest_rgb_frame["center"] is None or observer.latest_depth_mask is None:
         return
     
-    display_frame = observer.latest_rgb_frame["center"].copy()
-    lane_mask = detect_lane(observer.latest_rgb_frame["center"])
+    display_frame_left = observer.latest_rgb_frame["left"].copy()
+    display_frame_center = observer.latest_rgb_frame["center"].copy()
+    display_frame_right = observer.latest_rgb_frame["right"].copy()
 
-    if lane_mask is not None:
-        draw_lane_mask(display_frame, lane_mask)
+    lane_mask = {
+        # "left": detect_lane(observer.latest_rgb_frame["left"]),
+        "center": detect_lane(observer.latest_rgb_frame["center"]),
+        # "right": detect_lane(observer.latest_rgb_frame["right"])
+    }
 
-    detect_objects(observer.latest_rgb_frame["center"], observer.latest_depth_mask, display_frame)
+    # if lane_mask["left"] is not None or lane_mask["center"] is not None or lane_mask["right"] is not None:
+    #     draw_lane_mask(display_frame_left, lane_mask["left"])
+    #     draw_lane_mask(display_frame_center, lane_mask["center"])
+    #     draw_lane_mask(display_frame_right, lane_mask["right"])
 
-    cv2.imshow("Lane and Object Detection", display_frame)
+    if lane_mask["center"] is not None:
+        draw_lane_mask(display_frame_center, lane_mask["center"])
+
+    detect_objects(observer.latest_rgb_frame["center"], observer.latest_depth_mask, display_frame_center)
+
+    cv2.imshow("Lane and Object Detection", display_frame_center)
     cv2.waitKey(1)
 
     return lane_mask

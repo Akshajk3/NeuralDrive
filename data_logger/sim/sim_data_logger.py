@@ -2,7 +2,6 @@ import os
 import cv2
 import csv
 import numpy as np
-from pynput import keyboard
 import carla
 
 class SimDataLogger:
@@ -23,17 +22,10 @@ class SimDataLogger:
             # writer.writerow(["rgb", "depth", "mask", "steering", "throttle", "brake", "speed"])
             writer.writerow(["left", "center", "right", "mask", "steering"])
 
-        self.listener = keyboard.Listener(on_press=self.on_key_press)
-        self.listener.start()
-
-    def on_key_press(self, key):
-        try:
-            if key.char.lower() == "r":
-                self.recording = not self.recording
-                state = "ON" if self.recording else "OFF"
-                print(f"[DataLogger] Recording {state}")
-        except AttributeError:
-            pass
+    def on_key_press(self):
+        self.recording = not self.recording
+        state = "ON" if self.recording else "OFF"
+        print(f"[DataLogger] Recording {state}")
     
     def save_rgb(self, image: np.ndarray, index: str):
         if not self.recording or image is None:

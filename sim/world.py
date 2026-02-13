@@ -2,6 +2,7 @@ import carla
 import random
 import csv
 import cv2
+import pygame
 
 import sim.observer as observer
 from sim.observer import get_speed_kmh, depth_callback, rgb_callback
@@ -9,13 +10,14 @@ from sim.detector import detect_lanes_and_objects
 from sim.npc_manager import NPCManager
 from data_logger.sim.sim_data_logger import SimDataLogger
 from sim.drive import Drive
+from sim.controller import Controller
 
 client = carla.Client("localhost", 2000)
 client.set_timeout(30.0)
 
 print("Loading Map...")
 
-world = client.load_world("Town04")
+world = client.load_world("Town05")
 blueprint_library = world.get_blueprint_library()
 
 vehicle_bp = blueprint_library.filter("vehicle.tesla.model3")[0]
@@ -23,13 +25,21 @@ spawn_point = random.choice(world.get_map().get_spawn_points())
 
 vehicle = world.spawn_actor(vehicle_bp, spawn_point)
 
+spectator = world.get_spectator()
+
 # npc_manager = NPCManager(client, world, blueprint_library)
 
 # npc_vehicles = npc_manager.spawn_npc_vehicles(200)
 # npc_walkers = npc_manager.spawn_npc_pedestrians(100)
 
 data_logger = SimDataLogger()
-controller = Drive()
+driver = Drive()
+keyboard_controller = Controller(vehicle)
+
+pygame.init()
+pygame.display.set_mode((100, 100))
+pygame.display.set_caption("Carla Input Capture")
+pygame.display.iconify()
 
 depth_bp = blueprint_library.find("sensor.camera.depth")
 depth_bp.set_attribute("image_size_x", "640")
@@ -96,6 +106,10 @@ left_camera.listen(rgb_callback(index='left'))
 center_camera.listen(rgb_callback(index='center'))
 right_camera.listen(rgb_callback(index='right'))
 
+settings = world.get_settings()
+settings.synchronous_mode = True
+settings.fixed_delta_seconds = 0.05
+world.apply_settings(settings)
 
 # Uncomment if you want Autopilot to run for data collection
 traffic_manager = client.get_trafficmanager(8000)
@@ -104,12 +118,40 @@ traffic_manager.ignore_lights_percentage(vehicle, 100.0)
 vehicle.set_autopilot(True, 8000)
 
 def run_sim():
+    noise_timer = 0
+    current_noise = 0
     print("Running Sim...")
     try:
         while True:
             world.tick()
+            pygame.event.pump()
+            control = keyboard_controller.parse_input(data_logger)
             control = vehicle.get_control()
             speed = get_speed_kmh(vehicle)
+
+            transform = vehicle.get_transform()
+
+            spectator.set_transform(carla.Transform(
+                transform.location
+                - transform.get_forward_vector() * 8
+                + carla.Location(z=3),
+                carla.Rotation(
+                    pitch=-15,
+                    yaw=transform.rotation.yaw
+                )
+            ))
+
+            if noise_timer <= 0 and random.random() < 0.02:
+                noise_timer = random.randint(5, 15)   # frames
+                current_noise = random.uniform(-0.03, 0.03)
+
+            if noise_timer > 0:
+                control.steer += current_noise
+                noise_timer -= 1
+
+            control.steer = max(-1.0, min(1.0, control.steer))
+
+            vehicle.apply_control(control)
 
             print(
                 f"Speed: {speed:6.2f} km/h | "
@@ -119,22 +161,25 @@ def run_sim():
             )
 
             lane_mask = detect_lanes_and_objects()
+            
+            # if control.throttle < 0.05 and abs(control.steer) < 0.02:
+            #     continue
 
-            # rgb = observer.latest_rgb_frame["center"]
+            rgb = observer.latest_rgb_frame["center"]
 
             # if rgb is not None and lane_mask is not None:
-            #     control = controller.compute_control(rgb, lane_mask)
+            #     control = driver.compute_control(rgb, lane_mask["center"])
             #     vehicle.apply_control(control)
 
             if data_logger.recording:
                 left = data_logger.save_rgb(observer.latest_rgb_frame["left"], "left")
                 center = data_logger.save_rgb(observer.latest_rgb_frame["center"], "center")
                 right = data_logger.save_rgb(observer.latest_rgb_frame["right"], "right")
-                mask = data_logger.save_mask(lane_mask)
+                mask = data_logger.save_mask(lane_mask["center"])
 
-                cv2.imshow("left", observer.latest_rgb_frame["left"])
-                cv2.imshow("center", observer.latest_rgb_frame["center"])
-                cv2.imshow("right", observer.latest_rgb_frame["right"])
+                # cv2.imshow("left", observer.latest_rgb_frame["left"])
+                # cv2.imshow("center", observer.latest_rgb_frame["center"])
+                # cv2.imshow("right", observer.latest_rgb_frame["right"])
                 
                 with open(data_logger.csv_file, "a", newline="") as f:
                     writer = csv.writer(f)
@@ -148,7 +193,7 @@ def run_sim():
                 
                 data_logger.image_count += 1
 
-                if data_logger.image_count >= 5000:
+                if data_logger.image_count >= 30000:
                     break
 
     except KeyboardInterrupt:
