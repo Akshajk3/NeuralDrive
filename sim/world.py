@@ -17,7 +17,7 @@ client.set_timeout(30.0)
 
 print("Loading Map...")
 
-world = client.load_world("Town05")
+world = client.load_world("Town01")
 blueprint_library = world.get_blueprint_library()
 
 vehicle_bp = blueprint_library.filter("vehicle.tesla.model3")[0]
@@ -42,13 +42,13 @@ pygame.display.set_caption("Carla Input Capture")
 pygame.display.iconify()
 
 depth_bp = blueprint_library.find("sensor.camera.depth")
-depth_bp.set_attribute("image_size_x", "640")
-depth_bp.set_attribute("image_size_y", "360")
+depth_bp.set_attribute("image_size_x", "320")
+depth_bp.set_attribute("image_size_y", "180")
 depth_bp.set_attribute("fov", "86")
 
 camera_bp = blueprint_library.find("sensor.camera.rgb")
-camera_bp.set_attribute("image_size_x", "640")
-camera_bp.set_attribute("image_size_y", "360")
+camera_bp.set_attribute("image_size_x", "320")
+camera_bp.set_attribute("image_size_y", "180")
 camera_bp.set_attribute("fov", "86")
 
 depth_transform = carla.Transform(
@@ -167,6 +167,8 @@ def run_sim():
 
             rgb = observer.latest_rgb_frame["center"]
 
+            # Uncomment to run the steering model and have it autonomously navigate
+
             # if rgb is not None and lane_mask is not None:
             #     control = driver.compute_control(rgb, lane_mask["center"])
             #     vehicle.apply_control(control)
@@ -193,7 +195,7 @@ def run_sim():
                 
                 data_logger.image_count += 1
 
-                if data_logger.image_count >= 30000:
+                if data_logger.image_count >= 5000:
                     break
 
     except KeyboardInterrupt:
