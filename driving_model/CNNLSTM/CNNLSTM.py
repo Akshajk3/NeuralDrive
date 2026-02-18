@@ -37,8 +37,6 @@ class SteeringDataset(Dataset):
             mask = cv2.imread(self.mask_paths[idx + i], cv2.IMREAD_GRAYSCALE)
             steering_angle = self.steerings[idx + i]
 
-            rgb, mask = self.preprocess(rgb, mask)
-
             if do_pan:
                 rgb, mask = self.pan(rgb, mask)
             if do_zoom:
@@ -47,6 +45,8 @@ class SteeringDataset(Dataset):
                 rgb = self.img_random_brightness(rgb)
             if do_flip:
                 rgb, mask, steering_angle = self.img_random_flip(rgb, mask, steering_angle)
+
+            rgb, mask = self.preprocess(rgb, mask)
 
             rgb_seq.append(rgb)
             mask_seq.append(mask)
@@ -151,10 +151,11 @@ class SteeringCNNLSTM(nn.Module):
         )
 
     def forward(self, rgb_seq, mask_seq):
-        batch_size, seq_len, C, H, W = mask_seq.shape
+        batch_size, seq_len, C_rgb, H, W = rgb_seq.shape
+        _, _, C_mask, _, _ = mask_seq.shape
 
-        rgb_seq = rgb_seq.view(batch_size * seq_len, C, H, W)
-        mask_seq = mask_seq.view(batch_size * seq_len, 1, H, W)
+        rgb_seq = rgb_seq.view(batch_size * seq_len, C_rgb, H, W)
+        mask_seq = mask_seq.view(batch_size * seq_len, C_mask, H, W)
 
         rgb_feat = self.rgb_cnn(rgb_seq)
         mask_feat = self.mask_cnn(mask_seq)
@@ -164,4 +165,4 @@ class SteeringCNNLSTM(nn.Module):
 
         lstm_out, _ = self.lstm(combined)
         out = self.fc(lstm_out[:, -1, :])
-        return out.squeeze(1)
+        return torch.tanh(out.squeeze(1))
