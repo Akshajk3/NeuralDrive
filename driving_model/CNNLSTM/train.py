@@ -49,11 +49,13 @@ print(f'removed {len(remove_list)}')
 data.drop(data.index[remove_list], inplace=True)
 print(f'remaining data {len(data)}')
 
+print("Mean Steering:", np.mean(data['steering']))
+print("Std Steering: ", np.std(data['steering']))
+
 hist, _ = np.histogram(data['steering'], (num_bins))
 plt.bar(center, hist, width=0.025)
 plt.plot((np.min(data['steering']), np.max(data['steering'])), (samples_per_bin, samples_per_bin))
 plt.show()
-
 
 def load_img_steering(rgb_dir, mask_dir, df):
     rgb_path = []
