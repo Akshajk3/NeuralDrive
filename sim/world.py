@@ -7,7 +7,6 @@ import pygame
 import sim.observer as observer
 from sim.observer import get_speed_kmh, depth_callback, rgb_callback
 from sim.detector import detect_lanes_and_objects
-from sim.npc_manager import NPCManager
 from data_logger.sim.sim_data_logger import SimDataLogger
 from sim.drive import Drive
 from sim.controller import Controller
@@ -112,10 +111,10 @@ settings.fixed_delta_seconds = 0.05
 world.apply_settings(settings)
 
 # Uncomment if you want Autopilot to run for data collection
-traffic_manager = client.get_trafficmanager(8000)
-traffic_manager.set_synchronous_mode(False)
-traffic_manager.ignore_lights_percentage(vehicle, 100.0)
-vehicle.set_autopilot(True, 8000)
+# traffic_manager = client.get_trafficmanager(8000)
+# traffic_manager.set_synchronous_mode(False)
+# traffic_manager.ignore_lights_percentage(vehicle, 100.0)
+# vehicle.set_autopilot(True, 8000)
 
 def run_sim():
     noise_timer = 0
@@ -141,9 +140,9 @@ def run_sim():
                 )
             ))
 
-            if noise_timer <= 0 and random.random() < 0.02:
+            if noise_timer <= 0 and random.random() < 0.15:
                 noise_timer = random.randint(5, 15)   # frames
-                current_noise = random.uniform(-0.03, 0.03)
+                current_noise = random.uniform(-0.15, 0.15)
 
             if noise_timer > 0:
                 control.steer += current_noise
@@ -169,9 +168,9 @@ def run_sim():
 
             # Uncomment to run the steering model and have it autonomously navigate
 
-            # if rgb is not None and lane_mask is not None:
-            #     control = driver.compute_control(rgb, lane_mask["center"])
-            #     vehicle.apply_control(control)
+            if rgb is not None and lane_mask is not None:
+                control = driver.compute_control(rgb, lane_mask["center"])
+                vehicle.apply_control(control)
 
             if data_logger.recording:
                 left = data_logger.save_rgb(observer.latest_rgb_frame["left"], "left")
@@ -195,7 +194,7 @@ def run_sim():
                 
                 data_logger.image_count += 1
 
-                if data_logger.image_count >= 5000:
+                if data_logger.image_count >= 150000:
                     break
 
     except KeyboardInterrupt:

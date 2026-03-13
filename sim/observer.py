@@ -42,8 +42,8 @@ def depth_callback(image: carla.Image):
 
     vis = get_depth_image(image)
 
-    cv2.imshow("Depth Camera", vis)
-    cv2.waitKey(1)
+    # cv2.imshow("Depth Camera", vis)
+    # cv2.waitKey(1)
 
 def get_rgb_image(image: carla.Image):
     img = np.frombuffer(image.raw_data, dtype=np.uint8)

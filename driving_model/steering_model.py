@@ -1,7 +1,7 @@
 import torch
 import cv2
 import numpy as np
-from CNNLSTM.CNNLSTM import SteeringCNNLSTM
+from driving_model.CNNLSTM.CNNLSTM import SteeringCNNLSTM
 
 class SteeringModel:
     def __init__(self, model_path="driving_model/CNNLSTM/steering_cnn_lstm.pth"):

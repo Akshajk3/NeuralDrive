@@ -9,7 +9,7 @@ class Drive:
         self.prev_steer = 0.0
 
     def compute_control(self, rgb, mask):
-        img, mask = self.driver.img_preprocess(rgb, mask)
+        img, mask = self.driver.preprocess(rgb, mask)
 
         steer = self.driver.model_predict(img, mask)
 

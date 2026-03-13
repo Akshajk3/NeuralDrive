@@ -90,7 +90,7 @@ def detect_lanes_and_objects():
 
     detect_objects(observer.latest_rgb_frame["center"], observer.latest_depth_mask, display_frame_center)
 
-    cv2.imshow("Lane and Object Detection", display_frame_center)
-    cv2.waitKey(1)
+    # cv2.imshow("Lane and Object Detection", display_frame_center)
+    # cv2.waitKey(1)
 
     return lane_mask
