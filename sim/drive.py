@@ -1,4 +1,4 @@
-from driving_model.waymo_steering_model import SteeringModel
+from driving_model.waymo.waymo_steering_model import SteeringModel
 import carla
 import numpy as np
 import cv2

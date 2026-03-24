@@ -1,10 +1,11 @@
 import torch
 import cv2
 import numpy as np
-from driving_model.CNNLSTM.CNNLSTM import SteeringCNNLSTM
+from driving_model.waymo.model import DrivingModel
+from torchvision.transforms import transforms
 
 class SteeringModel:
-    def __init__(self, model_path="driving_model/CNNLSTM/steering_cnn_lstm.pth"):
+    def __init__(self, model_path="driving_model/waymo/waymo_model.pth"):
         self.model_path = model_path
         if torch.cuda.is_available():
             self.device = 'cuda'
@@ -13,49 +14,43 @@ class SteeringModel:
         else:
             self.device = 'cpu'
         
-        self.model = SteeringCNNLSTM(seq_len=5).to(self.device)
-        self.model.load_state_dict(torch.load(self.model_path, map_location=self.device))
-        self.model.eval()
-
-        self.seq_len = 5
-        self.rgb_buffer = []
-        self.mask_buffer = []
+        self.transform = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[0.485,0.456,0.406],
+                std=[0.229,0.224,0.225]
+            )
+        ])
     
     def preprocess(self, img, mask):
         img = img[90:, :, :]
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
-        img = cv2.GaussianBlur(img, (3, 3), 0)
-        img = cv2.resize(img, (200, 66))
-        img = img / 255
-        img = np.transpose(img, (2, 0, 1))
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = self.transform(img)
 
-        mask = mask[90:, :]
-        mask = cv2.resize(mask, (200, 66), interpolation=cv2.INTER_NEAREST)
-        mask = mask.astype(np.float32) / 255.0
-        mask = np.expand_dims(mask, axis=0)
-
-        return img, mask
+        return img
     
+    def waypoints_to_steering(self, waypoints):
+        idx = min(5, len(waypoints) - 1)
+        target = waypoints[idx]
+
+        x, y = target
+
+        angle = np.arctan2(y, x)
+
+        return np.clip(angle, -1.0, 1.0)
+
     def model_predict(self, img, mask):
-        self.rgb_buffer.append(img)
-        self.mask_buffer.append(mask)
+        img = self.preprocess(img)
 
-        if len(self.rgb_buffer) > self.seq_len:
-            self.rgb_buffer.pop(0)
-            self.mask_buffer.pop(0)
-        
-        if len(self.rgb_buffer) < self.seq_len:
-            return 0.0
-
-        rgb_seq = np.stack(self.rgb_buffer, axis=0)
-        mask_seq = np.stack(self.mask_buffer, axis=0)
-
-        rgb_seq = torch.tensor(rgb_seq, dtype=torch.float32).unsqueeze(0).to(self.device)
-        mask_seq = torch.tensor(mask_seq, dtype=torch.float32).unsqueeze(0).to(self.device)
+        img = img.unsqueeze(0).to(self.device)
 
         with torch.no_grad():
-            steering = self.model(rgb_seq, mask_seq)
-            steering = steering.item()
-            steering = np.clip(steering, -1.0, 1.0)
-        
+            waypoints = self.model(img)
+
+        waypoints = waypoints.squeeze(0).cpu().numpy()
+
+        steering = self.waypoints_to_steering(waypoints)
+
         return steering
