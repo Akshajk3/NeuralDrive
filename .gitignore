@@ -1,1 +1,6 @@
 /driving_model/waymo/waymo_open_dataset
+*.h5
+waymo_open_dataset/
+*.h5
+waymo_open_dataset/
+driving_model/waymo/waymo_e2e_training.h5
