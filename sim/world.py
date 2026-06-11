@@ -12,7 +12,7 @@ from sim.drive import Drive
 from sim.controller import Controller
 
 client = carla.Client("localhost", 2000)
-client.set_timeout(30.0)
+client.set_timeout(60.0)
 
 print("Loading Map...")
 
