@@ -2,7 +2,7 @@
 
 **A self-driving go-kart project: a drive-by-wire electric kart controlled by an Arduino, and a camera-based autonomy stack developed and tested in the CARLA driving simulator.**
 
-https://github.com/user-attachments/assets/d3a31bef-147c-4b3b-8427-c4d78f990779
+https://github.com/user-attachments/assets/3fd042cd-7fa9-48a9-923a-1f8082c26472
 
 The goal of NeuralDrive is a go-kart that can steer itself using only cameras. The project has two halves that are being built in parallel:
 
